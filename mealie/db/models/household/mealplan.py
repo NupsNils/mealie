@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from ..recipe import RecipeModel
     from ..users import User
     from .household import Household
+    from .mealplan_attendance import MealPlanAttendance, MealPlanEntryDetails
 
 plan_rules_to_households = Table(
     "plan_rules_to_households",
@@ -70,6 +71,14 @@ class GroupMealPlan(SqlAlchemyBase, BaseMixins):
     recipe_id: FilterableColumn[GUID | None] = mapped_column(GUID, ForeignKey("recipes.id"), index=True)
     recipe: Mapped[Optional["RecipeModel"]] = orm.relationship(
         "RecipeModel", back_populates="meal_entries", uselist=False
+    )
+
+    # Meal attendance module. Both live in their own tables so this one is left untouched.
+    attendance: Mapped[list["MealPlanAttendance"]] = orm.relationship(
+        "MealPlanAttendance", back_populates="mealplan", cascade="all, delete-orphan"
+    )
+    details: Mapped[Optional["MealPlanEntryDetails"]] = orm.relationship(
+        "MealPlanEntryDetails", back_populates="mealplan", uselist=False, cascade="all, delete-orphan"
     )
 
     @auto_init()

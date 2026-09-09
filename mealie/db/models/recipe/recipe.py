@@ -35,6 +35,7 @@ from .tool import recipes_to_tools
 if TYPE_CHECKING:
     from ..group import Group, GroupMealPlan
     from ..household import Household, ShoppingListItemRecipeReference, ShoppingListRecipeReference
+    from ..household.mealplan_attendance import MealPlanRecipeSuggestion
     from ..users import User
     from . import Category, Tag, Tool
 
@@ -75,6 +76,9 @@ class RecipeModel(SqlAlchemyBase, BaseMixins):
 
     meal_entries: Mapped[list["GroupMealPlan"]] = orm.relationship(
         "GroupMealPlan", back_populates="recipe", cascade="all, delete-orphan"
+    )
+    mealplan_suggestions: Mapped[list["MealPlanRecipeSuggestion"]] = orm.relationship(
+        "MealPlanRecipeSuggestion", back_populates="recipe", cascade="all, delete-orphan"
     )
 
     # General Recipe Properties
@@ -175,6 +179,7 @@ class RecipeModel(SqlAlchemyBase, BaseMixins):
             "settings",
             "comments",
             "timeline_events",
+            "mealplan_suggestions",
         },
     )
 

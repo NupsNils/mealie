@@ -137,6 +137,7 @@ async def start_scheduler():
 
     SchedulerRegistry.register_hourly(
         tasks.locked_user_reset,
+        tasks.process_mealplan_attendance,
     )
 
     SchedulerRegistry.print_jobs()

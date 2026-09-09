@@ -173,13 +173,9 @@ def generate_typescript_types() -> None:  # noqa: C901
             f.writelines(lines)
 
     def path_to_module(path: Path):
-        str_path: str = str(path)
-
-        str_path = str_path.removeprefix(str(PROJECT_DIR))
-        str_path = str_path.removeprefix("/")
-        str_path = str_path.replace("/", ".")
-
-        return str_path
+        # Built from path parts rather than string surgery so it also works on Windows,
+        # where the separator is a backslash.
+        return ".".join(path.relative_to(PROJECT_DIR).parts)
 
     schema_path = PROJECT_DIR / "mealie" / "schema"
     types_dir = PROJECT_DIR / "frontend" / "app" / "lib" / "api" / "types"

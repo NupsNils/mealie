@@ -6,6 +6,10 @@
 */
 
 export type PlanEntryType = "breakfast" | "lunch" | "dinner" | "side" | "snack" | "drink" | "dessert";
+export type AbsenceReason = "vacation" | "business_trip" | "away" | "other";
+export type AttendanceStatus = "attending" | "declined" | "undecided";
+export type DeadlineMode = "weekly" | "relative" | "manual";
+export type SuggestionStatus = "open" | "planned" | "rejected";
 export type PlanRulesDay = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday" | "unset";
 export type PlanRulesType = "breakfast" | "lunch" | "dinner" | "side" | "snack" | "drink" | "dessert" | "unset";
 export type LogicalOperator = "AND" | "OR";
@@ -29,50 +33,247 @@ export interface ListItem {
   quantity?: number;
   checked?: boolean;
 }
-export interface PlanRulesCreate {
-  day?: PlanRulesDay;
-  entryType?: PlanRulesType;
-  queryFilterString?: string;
+export interface MealPlanAbsenceCreate {
+  participantId: string;
+  startDate: string;
+  endDate: string;
+  reason?: AbsenceReason;
+  note?: string | null;
 }
-export interface PlanRulesOut {
-  day?: PlanRulesDay;
-  entryType?: PlanRulesType;
-  queryFilterString?: string;
+export interface MealPlanAbsenceOut {
+  participantId: string;
+  startDate: string;
+  endDate: string;
+  reason?: AbsenceReason;
+  note?: string | null;
   groupId: string;
   householdId: string;
   id: string;
-  queryFilter?: QueryFilterJSON;
 }
-export interface QueryFilterJSON {
-  parts?: QueryFilterJSONPart[];
-}
-export interface QueryFilterJSONPart {
-  leftParenthesis?: string | null;
-  rightParenthesis?: string | null;
-  logicalOperator?: LogicalOperator | null;
-  attributeName?: string | null;
-  relationalOperator?: RelationalKeyword | RelationalOperator | null;
-  value?: string | string[] | null;
-  [k: string]: unknown;
-}
-export interface PlanRulesSave {
-  day?: PlanRulesDay;
-  entryType?: PlanRulesType;
-  queryFilterString?: string;
+export interface MealPlanAbsenceSave {
+  participantId: string;
+  startDate: string;
+  endDate: string;
+  reason?: AbsenceReason;
+  note?: string | null;
   groupId: string;
   householdId: string;
 }
-export interface ReadPlanEntry {
+export interface MealPlanAbsenceUpdate {
+  participantId: string;
+  startDate: string;
+  endDate: string;
+  reason?: AbsenceReason;
+  note?: string | null;
+  id: string;
+}
+export interface MealPlanAttendanceBulkUpdate {
+  participantId: string;
+  status: AttendanceStatus;
+  guestCount?: number;
+  note?: string | null;
+}
+export interface MealPlanAttendanceOut {
+  status: AttendanceStatus;
+  guestCount?: number;
+  note?: string | null;
+  groupId: string;
+  householdId: string;
+  mealplanId: number;
+  participantId: string;
+  respondedAt?: string | null;
+  id: string;
+}
+export interface MealPlanAttendanceOverview {
+  startDate: string;
+  endDate: string;
+  settings: MealPlanAttendanceSettingsOut;
+  participants?: MealPlanParticipantOut[];
+  absences?: MealPlanAbsenceOut[];
+  meals?: MealPlanAttendanceSummary[];
+}
+export interface MealPlanAttendanceSettingsOut {
+  enabled?: boolean;
+  deadlineMode?: DeadlineMode;
+  deadlineWeekday?: number;
+  deadlineTime?: string;
+  deadlineLeadDays?: number;
+  timezone?: string;
+  autoLock?: boolean;
+  reminderEnabled?: boolean;
+  reminderHoursBefore?: number;
+  entryTypes?: PlanEntryType2[];
+  groupId: string;
+  householdId: string;
+  id: string;
+}
+export interface MealPlanParticipantOut {
+  name: string;
+  userId?: string | null;
+  parentId?: string | null;
+  defaultAttending?: boolean;
+  active?: boolean;
+  groupId: string;
+  householdId: string;
+  id: string;
+}
+export interface MealPlanAttendanceSummary {
+  mealplanId: number;
   date: string;
-  entryType?: PlanEntryType;
+  entryType: PlanEntryType;
   title?: string;
-  text?: string;
   recipeId?: string | null;
-  id: number;
+  recipeName?: string | null;
+  recipeSlug?: string | null;
+  deadlineAt?: string | null;
+  isLocked?: boolean;
+  deadlinePassed?: boolean;
+  attendeeCount?: number;
+  pendingResponseCount?: number;
+  servings?: number;
+  servingsOverride?: number | null;
+  recipeServings?: number;
+  scaleFactor?: number;
+  cookParticipantId?: string | null;
+  shopperParticipantId?: string | null;
+  attendees?: MealPlanAttendeeSummary[];
+}
+export interface MealPlanAttendeeSummary {
+  participantId: string;
+  participantName: string;
+  userId?: string | null;
+  parentId?: string | null;
+  isGuest?: boolean;
+  status?: AttendanceStatus;
+  guestCount?: number;
+  note?: string | null;
+  hasResponded?: boolean;
+  isAbsent?: boolean;
+  absenceReason?: AbsenceReason4 | null;
+}
+export interface MealPlanAttendanceSave {
+  status: AttendanceStatus;
+  guestCount?: number;
+  note?: string | null;
   groupId: string;
-  userId: string;
   householdId: string;
-  recipe?: RecipeSummary | null;
+  mealplanId: number;
+  participantId: string;
+  respondedAt?: string | null;
+}
+export interface MealPlanAttendanceSettingsSave {
+  enabled?: boolean;
+  deadlineMode?: DeadlineMode;
+  deadlineWeekday?: number;
+  deadlineTime?: string;
+  deadlineLeadDays?: number;
+  timezone?: string;
+  autoLock?: boolean;
+  reminderEnabled?: boolean;
+  reminderHoursBefore?: number;
+  entryTypes?: PlanEntryType2[];
+  groupId: string;
+  householdId: string;
+}
+export interface MealPlanAttendanceSettingsUpdate {
+  enabled?: boolean;
+  deadlineMode?: DeadlineMode;
+  deadlineWeekday?: number;
+  deadlineTime?: string;
+  deadlineLeadDays?: number;
+  timezone?: string;
+  autoLock?: boolean;
+  reminderEnabled?: boolean;
+  reminderHoursBefore?: number;
+  entryTypes?: PlanEntryType2[];
+}
+export interface MealPlanAttendanceShoppingListEntry {
+  mealplanId: number;
+  recipeId: string;
+  recipeName?: string | null;
+  servings: number;
+  scaleFactor: number;
+}
+export interface MealPlanAttendanceShoppingListRequest {
+  shoppingListId: string;
+  startDate: string;
+  endDate: string;
+  onlyLocked?: boolean;
+}
+export interface MealPlanAttendanceShoppingListResult {
+  shoppingListId: string;
+  added?: MealPlanAttendanceShoppingListEntry[];
+  skipped?: string[];
+}
+export interface MealPlanAttendanceUpdate {
+  status: AttendanceStatus;
+  guestCount?: number;
+  note?: string | null;
+}
+export interface MealPlanEntryDetailsOut {
+  deadlineAt?: string | null;
+  locked?: boolean;
+  servingsOverride?: number | null;
+  cookParticipantId?: string | null;
+  shopperParticipantId?: string | null;
+  groupId: string;
+  householdId: string;
+  mealplanId: number;
+  reminderSentAt?: string | null;
+  id: string;
+}
+export interface MealPlanEntryDetailsSave {
+  deadlineAt?: string | null;
+  locked?: boolean;
+  servingsOverride?: number | null;
+  cookParticipantId?: string | null;
+  shopperParticipantId?: string | null;
+  groupId: string;
+  householdId: string;
+  mealplanId: number;
+  reminderSentAt?: string | null;
+}
+export interface MealPlanEntryDetailsUpdate {
+  deadlineAt?: string | null;
+  locked?: boolean;
+  servingsOverride?: number | null;
+  cookParticipantId?: string | null;
+  shopperParticipantId?: string | null;
+}
+export interface MealPlanParticipantCreate {
+  name: string;
+  userId?: string | null;
+  parentId?: string | null;
+  defaultAttending?: boolean;
+  active?: boolean;
+}
+export interface MealPlanParticipantSave {
+  name: string;
+  userId?: string | null;
+  parentId?: string | null;
+  defaultAttending?: boolean;
+  active?: boolean;
+  groupId: string;
+  householdId: string;
+}
+export interface MealPlanParticipantUpdate {
+  name: string;
+  userId?: string | null;
+  parentId?: string | null;
+  defaultAttending?: boolean;
+  active?: boolean;
+  id: string;
+}
+export interface MealPlanRotationCandidate {
+  recipe: RecipeSummary;
+  score: number;
+  lastPlannedOn?: string | null;
+  daysSinceLast?: number | null;
+  favoriteCount?: number;
+  isSuggested?: boolean;
+  suggestedBy?: string[];
+  lastChosenBy?: string | null;
+  reasons?: string[];
 }
 export interface RecipeSummary {
   id?: string | null;
@@ -122,6 +323,97 @@ export interface RecipeTool {
   slug: string;
   recipeCount?: number;
   householdsWithTool?: string[];
+}
+export interface MealPlanRotationProposal {
+  cooldownWeeks: number;
+  slots?: MealPlanRotationSlot[];
+}
+export interface MealPlanRotationSlot {
+  date: string;
+  entryType: PlanEntryType;
+  candidates?: MealPlanRotationCandidate[];
+}
+export interface MealPlanRotationRequest {
+  startDate: string;
+  endDate: string;
+  entryType?: PlanEntryType;
+  cooldownWeeks?: number;
+  favoriteWeight?: number;
+  suggestionWeight?: number;
+  fairnessWeight?: number;
+  limit?: number;
+}
+export interface MealPlanSuggestionCreate {
+  recipeId: string;
+  note?: string | null;
+}
+export interface MealPlanSuggestionOut {
+  recipeId: string;
+  note?: string | null;
+  groupId: string;
+  householdId: string;
+  createdById?: string | null;
+  status?: SuggestionStatus;
+  id: string;
+  recipe?: RecipeSummary | null;
+}
+export interface MealPlanSuggestionSave {
+  recipeId: string;
+  note?: string | null;
+  groupId: string;
+  householdId: string;
+  createdById?: string | null;
+  status?: SuggestionStatus;
+}
+export interface MealPlanSuggestionUpdate {
+  id: string;
+  status?: SuggestionStatus;
+  note?: string | null;
+}
+export interface PlanRulesCreate {
+  day?: PlanRulesDay;
+  entryType?: PlanRulesType;
+  queryFilterString?: string;
+}
+export interface PlanRulesOut {
+  day?: PlanRulesDay;
+  entryType?: PlanRulesType;
+  queryFilterString?: string;
+  groupId: string;
+  householdId: string;
+  id: string;
+  queryFilter?: QueryFilterJSON;
+}
+export interface QueryFilterJSON {
+  parts?: QueryFilterJSONPart[];
+}
+export interface QueryFilterJSONPart {
+  leftParenthesis?: string | null;
+  rightParenthesis?: string | null;
+  logicalOperator?: LogicalOperator | null;
+  attributeName?: string | null;
+  relationalOperator?: RelationalKeyword | RelationalOperator | null;
+  value?: string | string[] | null;
+  [k: string]: unknown;
+}
+export interface PlanRulesSave {
+  day?: PlanRulesDay;
+  entryType?: PlanRulesType;
+  queryFilterString?: string;
+  groupId: string;
+  householdId: string;
+}
+export interface ReadPlanEntry {
+  date: string;
+  entryType?: PlanEntryType;
+  title?: string;
+  text?: string;
+  recipeId?: string | null;
+  id: number;
+  groupId: string;
+  userId: string;
+  householdId: string;
+  recipe?: RecipeSummary | null;
 }
 export interface SavePlanEntry {
   date: string;

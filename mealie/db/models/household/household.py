@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
@@ -23,6 +23,8 @@ if TYPE_CHECKING:
         GroupRecipeAction,
         GroupWebhooksModel,
         HouseholdPreferencesModel,
+        MealPlanAttendanceSettings,
+        MealPlanParticipant,
     )
 
 
@@ -66,6 +68,11 @@ class Household(SqlAlchemyBase, BaseMixins):
         "GroupEventNotifierModel", **COMMON_ARGS
     )
 
+    mealplan_participants: Mapped[list["MealPlanParticipant"]] = orm.relationship("MealPlanParticipant", **COMMON_ARGS)
+    mealplan_attendance_settings: Mapped[Optional["MealPlanAttendanceSettings"]] = orm.relationship(
+        "MealPlanAttendanceSettings", uselist=False, **COMMON_ARGS
+    )
+
     made_recipes: Mapped[list["RecipeModel"]] = orm.relationship(
         "RecipeModel", secondary=HouseholdToRecipe.__tablename__, back_populates="made_by"
     )
@@ -89,6 +96,8 @@ class Household(SqlAlchemyBase, BaseMixins):
             "group_event_notifiers",
             "group",
             "made_recipes",
+            "mealplan_participants",
+            "mealplan_attendance_settings",
         }
     )
 

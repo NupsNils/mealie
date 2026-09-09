@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from ..group import Group
     from ..household import Household
     from ..household.mealplan import GroupMealPlan
+    from ..household.mealplan_attendance import MealPlanParticipant, MealPlanRecipeSuggestion
     from ..household.shopping_list import ShoppingList
     from ..recipe import RecipeComment, RecipeModel, RecipeTimelineEvent
     from .password_reset import PasswordResetModel
@@ -106,6 +107,10 @@ class User(SqlAlchemyBase, BaseMixins):
         "GroupMealPlan", order_by="GroupMealPlan.date", **sp_args
     )
     shopping_lists: Mapped[list["ShoppingList"]] = orm.relationship("ShoppingList", **sp_args)
+    mealplan_participants: Mapped[list["MealPlanParticipant"]] = orm.relationship("MealPlanParticipant", **sp_args)
+    mealplan_suggestions: Mapped[list["MealPlanRecipeSuggestion"]] = orm.relationship(
+        "MealPlanRecipeSuggestion", **sp_args
+    )
     rated_recipes: Mapped[list["RecipeModel"]] = orm.relationship(
         "RecipeModel",
         secondary=UserToRecipe.__tablename__,
@@ -129,6 +134,8 @@ class User(SqlAlchemyBase, BaseMixins):
             "can_organize",
             "group",
             "household",
+            "mealplan_participants",
+            "mealplan_suggestions",
         }
     )
 
