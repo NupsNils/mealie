@@ -16,6 +16,14 @@ from mealie.db.models.household.household import Household
 from mealie.db.models.household.household_to_recipe import HouseholdToRecipe
 from mealie.db.models.household.invite_tokens import GroupInviteToken
 from mealie.db.models.household.mealplan import GroupMealPlan, GroupMealPlanRules
+from mealie.db.models.household.mealplan_attendance import (
+    MealPlanAbsence,
+    MealPlanAttendance,
+    MealPlanAttendanceSettings,
+    MealPlanEntryDetails,
+    MealPlanParticipant,
+    MealPlanRecipeSuggestion,
+)
 from mealie.db.models.household.preferences import HouseholdPreferencesModel
 from mealie.db.models.household.recipe_action import GroupRecipeAction
 from mealie.db.models.household.shopping_list import (
@@ -62,6 +70,14 @@ from mealie.schema.household.household_preferences import ReadHouseholdPreferenc
 from mealie.schema.household.invite_token import ReadInviteToken
 from mealie.schema.household.webhook import ReadWebhook
 from mealie.schema.labels import MultiPurposeLabelOut
+from mealie.schema.meal_plan.attendance import (
+    MealPlanAbsenceOut,
+    MealPlanAttendanceOut,
+    MealPlanAttendanceSettingsOut,
+    MealPlanEntryDetailsOut,
+    MealPlanParticipantOut,
+    MealPlanSuggestionOut,
+)
 from mealie.schema.meal_plan.new_meal import ReadPlanEntry
 from mealie.schema.meal_plan.plan_rules import PlanRulesOut
 from mealie.schema.recipe import Recipe, RecipeCommentOut, RecipeToolOut
@@ -77,6 +93,12 @@ from mealie.schema.user.user_passwords import PrivatePasswordResetToken
 from ._utils import NOT_SET, NotSet
 from .repository_generic import GroupRepositoryGeneric, HouseholdRepositoryGeneric
 from .repository_group import RepositoryGroup
+from .repository_mealplan_attendance import (
+    RepositoryMealPlanAbsences,
+    RepositoryMealPlanAttendance,
+    RepositoryMealPlanEntryDetails,
+    RepositoryMealPlanParticipants,
+)
 from .repository_meals import RepositoryMeals
 from .repository_recipes import RepositoryRecipes
 from .repository_shopping_list import RepositoryShoppingList
@@ -364,6 +386,74 @@ class AllRepositories:
     def meals(self) -> RepositoryMeals:
         return RepositoryMeals(
             self.session, PK_ID, GroupMealPlan, ReadPlanEntry, group_id=self.group_id, household_id=self.household_id
+        )
+
+    @cached_property
+    def mealplan_participants(self) -> RepositoryMealPlanParticipants:
+        return RepositoryMealPlanParticipants(
+            self.session,
+            PK_ID,
+            MealPlanParticipant,
+            MealPlanParticipantOut,
+            group_id=self.group_id,
+            household_id=self.household_id,
+        )
+
+    @cached_property
+    def mealplan_attendance(self) -> RepositoryMealPlanAttendance:
+        return RepositoryMealPlanAttendance(
+            self.session,
+            PK_ID,
+            MealPlanAttendance,
+            MealPlanAttendanceOut,
+            group_id=self.group_id,
+            household_id=self.household_id,
+        )
+
+    @cached_property
+    def mealplan_entry_details(self) -> RepositoryMealPlanEntryDetails:
+        return RepositoryMealPlanEntryDetails(
+            self.session,
+            PK_ID,
+            MealPlanEntryDetails,
+            MealPlanEntryDetailsOut,
+            group_id=self.group_id,
+            household_id=self.household_id,
+        )
+
+    @cached_property
+    def mealplan_attendance_settings(
+        self,
+    ) -> HouseholdRepositoryGeneric[MealPlanAttendanceSettingsOut, MealPlanAttendanceSettings]:
+        return HouseholdRepositoryGeneric(
+            self.session,
+            PK_HOUSEHOLD_ID,
+            MealPlanAttendanceSettings,
+            MealPlanAttendanceSettingsOut,
+            group_id=self.group_id,
+            household_id=self.household_id,
+        )
+
+    @cached_property
+    def mealplan_absences(self) -> RepositoryMealPlanAbsences:
+        return RepositoryMealPlanAbsences(
+            self.session,
+            PK_ID,
+            MealPlanAbsence,
+            MealPlanAbsenceOut,
+            group_id=self.group_id,
+            household_id=self.household_id,
+        )
+
+    @cached_property
+    def mealplan_suggestions(self) -> HouseholdRepositoryGeneric[MealPlanSuggestionOut, MealPlanRecipeSuggestion]:
+        return HouseholdRepositoryGeneric(
+            self.session,
+            PK_ID,
+            MealPlanRecipeSuggestion,
+            MealPlanSuggestionOut,
+            group_id=self.group_id,
+            household_id=self.household_id,
         )
 
     @cached_property

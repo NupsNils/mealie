@@ -79,6 +79,7 @@ nav:
           - AI Providers: "documentation/getting-started/installation/ai-providers.md"
       - Usage:
           - Backup and Restoring: "documentation/getting-started/usage/backups-and-restoring.md"
+          - Meal Attendance: "documentation/getting-started/usage/meal-attendance.md"
           - Permissions and Public Access: "documentation/getting-started/usage/permissions-and-public-access.md"
 
       - Authentication:

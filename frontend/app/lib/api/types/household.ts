@@ -61,6 +61,8 @@ export interface GroupEventNotifierOptions {
   mealplanEntryCreated?: boolean;
   mealplanEntryUpdated?: boolean;
   mealplanEntryDeleted?: boolean;
+  mealplanAttendanceReminder?: boolean;
+  mealplanAttendanceClosed?: boolean;
   shoppingListCreated?: boolean;
   shoppingListUpdated?: boolean;
   shoppingListDeleted?: boolean;
@@ -90,6 +92,8 @@ export interface GroupEventNotifierOptionsOut {
   mealplanEntryCreated?: boolean;
   mealplanEntryUpdated?: boolean;
   mealplanEntryDeleted?: boolean;
+  mealplanAttendanceReminder?: boolean;
+  mealplanAttendanceClosed?: boolean;
   shoppingListCreated?: boolean;
   shoppingListUpdated?: boolean;
   shoppingListDeleted?: boolean;
@@ -120,6 +124,8 @@ export interface GroupEventNotifierOptionsSave {
   mealplanEntryCreated?: boolean;
   mealplanEntryUpdated?: boolean;
   mealplanEntryDeleted?: boolean;
+  mealplanAttendanceReminder?: boolean;
+  mealplanAttendanceClosed?: boolean;
   shoppingListCreated?: boolean;
   shoppingListUpdated?: boolean;
   shoppingListDeleted?: boolean;

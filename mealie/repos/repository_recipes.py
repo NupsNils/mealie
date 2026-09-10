@@ -370,3 +370,17 @@ class RepositoryRecipes(RecipeSuggestionMixin, HouseholdRepositoryGeneric[Recipe
     def all_ids(self, group_id: UUID4) -> Sequence[UUID4]:
         stmt = sa.select(RecipeModel.id).filter(RecipeModel.group_id == group_id)
         return self.session.execute(stmt).scalars().all()
+
+    def get_summaries_by_ids(self, recipe_ids: Iterable[UUID4]) -> list[RecipeSummary]:
+        """Fetch a known set of recipes in one query, scoped to the caller's group."""
+
+        recipe_ids = list(recipe_ids)
+        if not recipe_ids:
+            return []
+
+        stmt = self._query(override_schema=RecipeSummary).filter(RecipeModel.id.in_(recipe_ids))
+        if self.group_id:
+            stmt = stmt.filter(RecipeModel.group_id == self.group_id)
+
+        results = self.session.execute(stmt).unique().scalars().all()
+        return [RecipeSummary.model_validate(x) for x in results]

@@ -39,6 +39,9 @@ class EventTypes(Enum):
     mealplan_entry_updated = auto()
     mealplan_entry_deleted = auto()
 
+    mealplan_attendance_reminder = auto()
+    mealplan_attendance_closed = auto()
+
     shopping_list_created = auto()
     shopping_list_updated = auto()
     shopping_list_deleted = auto()
@@ -98,6 +101,16 @@ class EventMealplanData(EventDocumentDataBase):
     recipe_id: UUID4 | None = None
     recipe_name: str | None = None
     recipe_slug: str | None = None
+
+
+class EventMealplanAttendanceData(EventDocumentDataBase):
+    document_type: EventDocumentType = EventDocumentType.mealplan
+    mealplan_id: int
+    date: date
+    recipe_name: str | None = None
+    deadline_at: datetime | None = None
+    attendee_count: int = 0
+    pending_response_count: int = 0
 
 
 class EventUserSignupData(EventDocumentDataBase):

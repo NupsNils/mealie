@@ -66,6 +66,19 @@ class EmailService(BaseService):
         )
         return self.send_email(address, invitation)
 
+    def send_mealplan_attendance_reminder(self, address: str, mealplan_url: str, meal_summary: str) -> bool:
+        """Nudge somebody who still owes an answer before a meal's deadline passes."""
+
+        reminder = EmailTemplate(
+            subject=self.translator.t("emails.mealplan-attendance.subject"),
+            header_text=self.translator.t("emails.mealplan-attendance.header_text"),
+            message_top=meal_summary or self.translator.t("emails.mealplan-attendance.message_top"),
+            message_bottom=self.translator.t("emails.mealplan-attendance.message_bottom"),
+            button_link=mealplan_url,
+            button_text=self.translator.t("emails.mealplan-attendance.button_text"),
+        )
+        return self.send_email(address, reminder)
+
     def send_test_email(self, address: str) -> bool:
         test_email = EmailTemplate(
             subject=self.translator.t("emails.test.subject"),

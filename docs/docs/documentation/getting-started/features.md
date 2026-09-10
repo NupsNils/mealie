@@ -92,6 +92,16 @@ The meal planner has the concept of plan rules. These offer a flexible way to us
 
 [Planner Settings Demo](https://demo.mealie.io/household/mealplan/settings){ .md-button .md-button--primary }
 
+### Meal Attendance
+
+Meal attendance is an opt-in layer on top of the planner for households where not everyone
+eats along every day. Members and their guests confirm or decline a planned meal, a deadline
+closes the day, and the recipes are then scaled to the number of confirmations — so a recipe
+for four becomes 1.75× when seven people say yes. Absences, reminders, and a "who cooks /
+who shops" assignment come with it.
+
+See [Meal Attendance](usage/meal-attendance.md) for the full walkthrough.
+
 ## Shopping Lists
 
 The shopping lists feature is a great way to keep track of what you need to buy for your next meal. You can add items directly to the shopping list or link a recipe and all of it's ingredients to track meals during the week.

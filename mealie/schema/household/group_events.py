@@ -33,6 +33,9 @@ class GroupEventNotifierOptions(MealieModel):
     mealplan_entry_updated: bool = False
     mealplan_entry_deleted: bool = False
 
+    mealplan_attendance_reminder: bool = False
+    mealplan_attendance_closed: bool = False
+
     shopping_list_created: bool = False
     shopping_list_updated: bool = False
     shopping_list_deleted: bool = False
