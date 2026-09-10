@@ -93,6 +93,22 @@ households_invitations = "/api/households/invitations"
 """`/api/households/invitations`"""
 households_invitations_email = "/api/households/invitations/email"
 """`/api/households/invitations/email`"""
+households_mealplan_absences = "/api/households/mealplan-absences"
+"""`/api/households/mealplan-absences`"""
+households_mealplan_attendance = "/api/households/mealplan-attendance"
+"""`/api/households/mealplan-attendance`"""
+households_mealplan_attendance_settings = "/api/households/mealplan-attendance/settings"
+"""`/api/households/mealplan-attendance/settings`"""
+households_mealplan_attendance_shopping_list = "/api/households/mealplan-attendance/shopping-list"
+"""`/api/households/mealplan-attendance/shopping-list`"""
+households_mealplan_participants = "/api/households/mealplan-participants"
+"""`/api/households/mealplan-participants`"""
+households_mealplan_participants_sync = "/api/households/mealplan-participants/sync"
+"""`/api/households/mealplan-participants/sync`"""
+households_mealplan_suggestions = "/api/households/mealplan-suggestions"
+"""`/api/households/mealplan-suggestions`"""
+households_mealplan_suggestions_rotation = "/api/households/mealplan-suggestions/rotation"
+"""`/api/households/mealplan-suggestions/rotation`"""
 households_mealplans = "/api/households/mealplans"
 """`/api/households/mealplans`"""
 households_mealplans_random = "/api/households/mealplans/random"
@@ -372,9 +388,49 @@ def households_events_notifications_item_id_test(item_id):
     return f"{prefix}/households/events/notifications/{item_id}/test"
 
 
+def households_mealplan_absences_item_id(item_id):
+    """`/api/households/mealplan-absences/{item_id}`"""
+    return f"{prefix}/households/mealplan-absences/{item_id}"
+
+
+def households_mealplan_participants_item_id(item_id):
+    """`/api/households/mealplan-participants/{item_id}`"""
+    return f"{prefix}/households/mealplan-participants/{item_id}"
+
+
+def households_mealplan_suggestions_item_id(item_id):
+    """`/api/households/mealplan-suggestions/{item_id}`"""
+    return f"{prefix}/households/mealplan-suggestions/{item_id}"
+
+
 def households_mealplans_item_id(item_id):
     """`/api/households/mealplans/{item_id}`"""
     return f"{prefix}/households/mealplans/{item_id}"
+
+
+def households_mealplans_item_id_attendance(item_id):
+    """`/api/households/mealplans/{item_id}/attendance`"""
+    return f"{prefix}/households/mealplans/{item_id}/attendance"
+
+
+def households_mealplans_item_id_attendance_details(item_id):
+    """`/api/households/mealplans/{item_id}/attendance-details`"""
+    return f"{prefix}/households/mealplans/{item_id}/attendance-details"
+
+
+def households_mealplans_item_id_attendance_lock(item_id):
+    """`/api/households/mealplans/{item_id}/attendance/lock`"""
+    return f"{prefix}/households/mealplans/{item_id}/attendance/lock"
+
+
+def households_mealplans_item_id_attendance_participant_id(item_id, participant_id):
+    """`/api/households/mealplans/{item_id}/attendance/{participant_id}`"""
+    return f"{prefix}/households/mealplans/{item_id}/attendance/{participant_id}"
+
+
+def households_mealplans_item_id_attendance_unlock(item_id):
+    """`/api/households/mealplans/{item_id}/attendance/unlock`"""
+    return f"{prefix}/households/mealplans/{item_id}/attendance/unlock"
 
 
 def households_mealplans_rules_item_id(item_id):

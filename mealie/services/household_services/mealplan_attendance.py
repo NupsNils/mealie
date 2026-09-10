@@ -131,11 +131,15 @@ class MealPlanAttendanceService:
         return self.repos.mealplan_attendance_settings.create(defaults.to_db_values())
 
     def update_settings(self, data: MealPlanAttendanceSettingsUpdate) -> MealPlanAttendanceSettingsOut:
-        current = self.settings
+        # Touch the property first so a household updating its settings before ever reading
+        # them still has a row to update.
+        _ = self.settings
+
         save = MealPlanAttendanceSettingsSave(
             **data.model_dump(), group_id=self.group_id, household_id=self.household_id
         )
-        updated = self.repos.mealplan_attendance_settings.update(current.id, save.to_db_values())
+        # This repository is keyed on household_id, not on the row's own id.
+        updated = self.repos.mealplan_attendance_settings.update(self.household_id, save.to_db_values())
 
         self.__dict__["settings"] = updated
         return updated

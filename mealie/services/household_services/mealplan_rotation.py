@@ -19,7 +19,6 @@ from mealie.schema.meal_plan.attendance import (
     MealPlanRotationProposal,
     MealPlanRotationRequest,
     MealPlanRotationSlot,
-    MealPlanSuggestionCreate,
     MealPlanSuggestionOut,
     MealPlanSuggestionSave,
     MealPlanSuggestionUpdate,
@@ -64,17 +63,6 @@ class MealPlanRotationService:
         if status:
             suggestions = [suggestion for suggestion in suggestions if suggestion.status == status]
         return suggestions
-
-    def create_suggestion(self, data: MealPlanSuggestionCreate, user_id: UUID4) -> MealPlanSuggestionOut:
-        return self.repos.mealplan_suggestions.create(
-            MealPlanSuggestionSave(
-                group_id=self.group_id,
-                household_id=self.household_id,
-                created_by_id=user_id,
-                recipe_id=data.recipe_id,
-                note=data.note,
-            )
-        )
 
     def update_suggestion(self, data: MealPlanSuggestionUpdate) -> MealPlanSuggestionOut:
         existing = self.repos.mealplan_suggestions.get_one(data.id)

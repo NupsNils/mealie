@@ -35,6 +35,7 @@ from mealie.schema.meal_plan.attendance import (
     MealPlanSuggestionCreate,
     MealPlanSuggestionOut,
     MealPlanSuggestionPagination,
+    MealPlanSuggestionSave,
     MealPlanSuggestionUpdate,
 )
 from mealie.schema.response.pagination import PaginationQuery
@@ -294,6 +295,12 @@ class MealPlanSuggestionController(BaseUserController):
     def service(self) -> MealPlanRotationService:
         return MealPlanRotationService(self.repos)
 
+    @cached_property
+    def mixins(self):
+        return HttpRepo[MealPlanSuggestionCreate, MealPlanSuggestionOut, MealPlanSuggestionUpdate](
+            self.repos.mealplan_suggestions, self.logger, self.registered_exceptions
+        )
+
     @suggestions_router.get("", response_model=MealPlanSuggestionPagination)
     def get_all(self, q: PaginationQuery = Depends(PaginationQuery)):
         response = self.repos.mealplan_suggestions.page_all(pagination=q, override=MealPlanSuggestionOut)
@@ -302,9 +309,21 @@ class MealPlanSuggestionController(BaseUserController):
 
     @suggestions_router.post("", response_model=MealPlanSuggestionOut, status_code=201)
     def create_one(self, data: MealPlanSuggestionCreate):
-        """Anyone in the household may propose a recipe."""
+        """
+        Anyone in the household may propose a recipe.
 
-        return self.service.create_suggestion(data, self.user.id)
+        Routed through the mixin so proposing the same recipe twice comes back as a
+        conflict rather than an unhandled integrity error.
+        """
+
+        save = mapper.cast(
+            data,
+            MealPlanSuggestionSave,
+            group_id=self.group_id,
+            household_id=self.household_id,
+            created_by_id=self.user.id,
+        )
+        return self.mixins.create_one(save)
 
     @suggestions_router.post("/rotation", response_model=MealPlanRotationProposal)
     def get_rotation(self, data: MealPlanRotationRequest):
