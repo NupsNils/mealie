@@ -1,10 +1,12 @@
 from datetime import UTC, date, datetime, timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
 from mealie.schema.meal_plan.new_meal import SavePlanEntry
 from mealie.schema.recipe.recipe import Recipe
+from mealie.services.household_services.mealplan_attendance import MealPlanAttendanceService
+from mealie.services.scheduler.tasks.mealplan_attendance import auto_plan
 from tests.utils import api_routes
 from tests.utils.factories import random_string
 from tests.utils.fixture_schemas import TestUser
@@ -124,9 +126,7 @@ class MealPlanRotationTests:
         # The score is explained rather than just asserted.
         assert any("suggested" in reason for reason in candidate["reasons"])
 
-    def test_a_recipe_inside_its_cooldown_is_held_back(
-        self, api_client: TestClient, unique_user_fn_scoped: TestUser
-    ):
+    def test_a_recipe_inside_its_cooldown_is_held_back(self, api_client: TestClient, unique_user_fn_scoped: TestUser):
         recent = create_recipe(unique_user_fn_scoped, name="Cooked Last Week")
         plan_dinner(unique_user_fn_scoped, today() - timedelta(days=7), recent)
 
@@ -192,3 +192,143 @@ class MealPlanRotationTests:
         )
 
         assert response.status_code == 400
+
+    def test_the_days_take_turns_between_everyones_wishes(self, api_client: TestClient, user_tuple: list[TestUser]):
+        """Nobody has picked lately, so the two days go to one member each, and each gets their own wish."""
+
+        first, second = user_tuple
+        wishes = {}
+        for user in (first, second):
+            recipe = create_recipe(user)
+            suggest(api_client, user, recipe)
+            wishes[user.user_id] = recipe.name
+
+        start = today() + timedelta(days=20)
+        proposal = rotation(
+            api_client, first, startDate=start.isoformat(), endDate=(start + timedelta(days=1)).isoformat()
+        )
+
+        slots = proposal["slots"]
+        assert len(slots) == 2
+        assert {slot["deciderId"] for slot in slots} == {str(first.user_id), str(second.user_id)}
+        for slot in slots:
+            top = slot["candidates"][0]
+            assert top["wishOfDecider"] is True
+            assert top["recipe"]["name"] == wishes[UUID(slot["deciderId"])]
+
+    def test_a_meal_already_planned_ahead_counts_as_a_pick(self, api_client: TestClient, user_tuple: list[TestUser]):
+        """Otherwise every new round would start with the same person again."""
+
+        first, second = user_tuple
+        # Whoever would win the tie by name gets a meal ahead, so the other one must go first.
+        ahead = min(user_tuple, key=lambda user: user.full_name)
+        other = second if ahead is first else first
+
+        mealplan_id = plan_dinner(ahead, today() + timedelta(days=30), create_recipe(ahead))
+        try:
+            start = today() + timedelta(days=40)
+            proposal = rotation(api_client, first, startDate=start.isoformat(), endDate=start.isoformat())
+            assert proposal["slots"][0]["deciderId"] == str(other.user_id)
+        finally:
+            ahead.repos.meals.delete(mealplan_id)
+
+
+def suggest(api_client: TestClient, user: TestUser, recipe: Recipe) -> dict:
+    response = api_client.post(
+        api_routes.households_mealplan_suggestions, json={"recipeId": str(recipe.id)}, headers=user.token
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+class MealPlanRotationPlanningTests:
+    def test_fill_puts_a_different_top_pick_on_every_open_day(
+        self, api_client: TestClient, unique_user_fn_scoped: TestUser
+    ):
+        user = unique_user_fn_scoped
+        recipes = [create_recipe(user, name=name) for name in ("Lasagne", "Chili")]
+        for recipe in recipes:
+            suggest(api_client, user, recipe)
+        names = {recipe.name for recipe in recipes}
+
+        start = today() + timedelta(days=10)
+        payload = {
+            "startDate": start.isoformat(),
+            "endDate": (start + timedelta(days=1)).isoformat(),
+            "entryType": "dinner",
+        }
+        response = api_client.post(
+            api_routes.households_mealplan_suggestions_rotation_fill, json=payload, headers=user.token
+        )
+
+        assert response.status_code == 201
+        planned = response.json()
+        assert {entry["recipe"]["name"] for entry in planned} == names
+        assert {entry["date"] for entry in planned} == {start.isoformat(), (start + timedelta(days=1)).isoformat()}
+
+        # Both days are taken now, and the suggestions have done their job.
+        assert rotation(api_client, user, **payload)["slots"] == []
+        suggestions = api_client.get(api_routes.households_mealplan_suggestions, headers=user.token).json()["items"]
+        assert {suggestion["status"] for suggestion in suggestions} == {"planned"}
+
+    def test_a_candidate_can_be_planned_by_hand(self, api_client: TestClient, unique_user_fn_scoped: TestUser):
+        user = unique_user_fn_scoped
+        recipe = create_recipe(user)
+        suggest(api_client, user, recipe)
+
+        day = today() + timedelta(days=5)
+        response = api_client.post(
+            api_routes.households_mealplan_suggestions_rotation_plan,
+            json={"date": day.isoformat(), "entryType": "dinner", "recipeId": str(recipe.id)},
+            headers=user.token,
+        )
+
+        assert response.status_code == 201
+        entry = response.json()
+        assert entry["recipeId"] == str(recipe.id)
+        assert entry["userId"] == str(user.user_id)
+        suggestions = api_client.get(api_routes.households_mealplan_suggestions, headers=user.token).json()["items"]
+        assert suggestions[0]["status"] == "planned"
+
+    def test_planning_an_unknown_recipe_is_rejected(self, api_client: TestClient, unique_user_fn_scoped: TestUser):
+        response = api_client.post(
+            api_routes.households_mealplan_suggestions_rotation_plan,
+            json={"date": today().isoformat(), "recipeId": str(uuid4())},
+            headers=unique_user_fn_scoped.token,
+        )
+
+        assert response.status_code == 404
+
+    def test_the_weekly_auto_plan_runs_once_on_its_weekday(
+        self, api_client: TestClient, unique_user_fn_scoped: TestUser
+    ):
+        user = unique_user_fn_scoped
+        weekday = datetime.now(UTC).weekday()
+        response = api_client.put(
+            api_routes.households_mealplan_attendance_settings,
+            json={
+                "enabled": True,
+                "deadlineMode": "manual",
+                "timezone": "UTC",
+                "entryTypes": ["dinner"],
+                "autoPlanEnabled": True,
+                "autoPlanWeekday": weekday,
+                "autoPlanDays": 3,
+            },
+            headers=user.token,
+        )
+        assert response.status_code == 200
+        suggest(api_client, user, create_recipe(user, name="Auto Planned"))
+
+        service = MealPlanAttendanceService(user.repos)
+        assert service.auto_plan_window(datetime.now(UTC) + timedelta(days=1)) is None  # wrong weekday
+
+        # One candidate for three days: the first day gets it, the other two stay empty.
+        assert auto_plan(user.repos, service) == 1
+        planned = user.repos.meals.get_meals_by_date_range(
+            datetime.now(UTC) + timedelta(days=1), datetime.now(UTC) + timedelta(days=3)
+        )
+        assert [meal.recipe.name for meal in planned if meal.recipe] == ["Auto Planned"]
+
+        # Already ran today, so it waits for next week.
+        assert auto_plan(user.repos, MealPlanAttendanceService(user.repos)) == 0

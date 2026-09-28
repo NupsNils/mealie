@@ -1,10 +1,11 @@
 from datetime import UTC, date, datetime, timedelta
 from functools import cached_property
-from typing import NoReturn
+from typing import Annotated, NoReturn
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from pydantic import UUID4
 
+from mealie.lang.locale_config import LOCALE_CONFIG
 from mealie.routes._base.base_controllers import BaseUserController
 from mealie.routes._base.controller import controller
 from mealie.routes._base.mixins import HttpRepo
@@ -30,6 +31,7 @@ from mealie.schema.meal_plan.attendance import (
     MealPlanParticipantPagination,
     MealPlanParticipantSave,
     MealPlanParticipantUpdate,
+    MealPlanRotationPick,
     MealPlanRotationProposal,
     MealPlanRotationRequest,
     MealPlanSuggestionCreate,
@@ -38,6 +40,7 @@ from mealie.schema.meal_plan.attendance import (
     MealPlanSuggestionSave,
     MealPlanSuggestionUpdate,
 )
+from mealie.schema.meal_plan.new_meal import ReadPlanEntry
 from mealie.schema.response.pagination import PaginationQuery
 from mealie.schema.response.responses import ErrorResponse
 from mealie.services.household_services.mealplan_attendance import (
@@ -61,7 +64,7 @@ DEFAULT_RANGE_DAYS = 14
 class _AttendanceControllerBase(BaseUserController):
     @cached_property
     def service(self) -> MealPlanAttendanceService:
-        return MealPlanAttendanceService(self.repos)
+        return MealPlanAttendanceService(self.repos, self.translator)
 
     def handle(self, ex: Exception) -> NoReturn:
         """Turn the service's domain errors into the right HTTP status."""
@@ -80,9 +83,15 @@ class MealPlanAttendanceController(_AttendanceControllerBase):
         return self.service.settings
 
     @router.put("/settings", response_model=MealPlanAttendanceSettingsOut)
-    def update_settings(self, data: MealPlanAttendanceSettingsUpdate):
+    def update_settings(
+        self,
+        data: MealPlanAttendanceSettingsUpdate,
+        accept_language: Annotated[str | None, Header()] = None,
+    ):
         self.checks.can_manage_household()
-        return self.service.update_settings(data)
+        # Remember the UI language so the scheduler's reminders come out in it too.
+        locale = accept_language if accept_language in LOCALE_CONFIG else None
+        return self.service.update_settings(data, locale=locale)
 
     @router.get("", response_model=MealPlanAttendanceOverview)
     def get_overview(self, start_date: date | None = None, end_date: date | None = None):
@@ -330,17 +339,36 @@ class MealPlanSuggestionController(BaseUserController):
         """
         Ranked proposals for the open slots in a date range.
 
-        Favourites rank higher, recipes still inside their cooldown are left out, and
-        dishes last chosen by whoever has been deciding most are pushed down.
+        Favourites rank higher, recipes still inside their cooldown are left out, every day
+        is somebody's turn so their wishes are pushed up, and dishes last chosen by whoever
+        has been deciding most are pushed down.
         """
 
+        self._assert_valid_range(data)
+        return self.service.build_proposal(data)
+
+    @suggestions_router.post("/rotation/fill", response_model=list[ReadPlanEntry], status_code=201)
+    def fill_rotation(self, data: MealPlanRotationRequest):
+        """Put the top candidate of every open day in the range on the meal plan."""
+
+        self._assert_valid_range(data)
+        return self.service.fill(data)
+
+    @suggestions_router.post("/rotation/plan", response_model=ReadPlanEntry, status_code=201)
+    def plan_pick(self, data: MealPlanRotationPick):
+        """Put one recipe from the rolling plan on the meal plan, chosen by the current user."""
+
+        try:
+            return self.service.plan_pick(data, self.user.id)
+        except ValueError as ex:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=ErrorResponse.respond(message=str(ex))) from ex
+
+    def _assert_valid_range(self, data: MealPlanRotationRequest) -> None:
         if data.end_date < data.start_date:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 detail=ErrorResponse.respond(message="end_date must not be before start_date"),
             )
-
-        return self.service.build_proposal(data)
 
     @suggestions_router.put("/{item_id}", response_model=MealPlanSuggestionOut)
     def update_one(self, item_id: UUID4, data: MealPlanSuggestionUpdate):

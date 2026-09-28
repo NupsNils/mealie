@@ -145,6 +145,18 @@ class MealPlanAttendanceSettingsUpdate(MealieModel):
     entry_types: list[PlanEntryType] = Field(default_factory=lambda: [PlanEntryType.dinner])
     """Which mealplan entry types take part in the attendance flow."""
 
+    auto_plan_enabled: bool = False
+    """Once a week, put the rolling plan's top pick on every empty day."""
+
+    auto_plan_weekday: int = Field(4, ge=0, le=6)
+    """Weekday the automatic planning runs on, Monday is 0. Defaults to Friday."""
+
+    auto_plan_days: int = Field(14, ge=1, le=60)
+    """How many days the automatic planning fills, starting the day after it runs."""
+
+    rotation_cooldown_weeks: int = Field(6, ge=0, le=52)
+    """How long a dish rests before the rolling plan offers it again."""
+
     @field_validator("entry_types", mode="before")
     @classmethod
     def split_entry_types(cls, value: Any) -> Any:
@@ -170,6 +182,12 @@ class MealPlanAttendanceSettingsUpdate(MealieModel):
 class MealPlanAttendanceSettingsSave(MealPlanAttendanceSettingsUpdate):
     group_id: UUID4
     household_id: UUID4
+
+    locale: str | None = None
+    """Taken from the request that saved the settings, not from the payload."""
+
+    auto_plan_last_run: date | None = None
+    """Household-local day the automatic planning last ran, so it runs once per week."""
 
     def to_db_values(self) -> dict[str, Any]:
         """`entry_types` is a list on the wire but a comma separated string in the database."""
@@ -388,9 +406,16 @@ class MealPlanRotationCandidate(MealieModel):
     last_planned_on: date | None = None
     days_since_last: int | None = None
     favorite_count: int = 0
+    favorited_by: list[str] = Field(default_factory=list)
     is_suggested: bool = False
     suggested_by: list[str] = Field(default_factory=list)
     last_chosen_by: str | None = None
+    wish_of_decider: bool = False
+    """The member whose turn this day is hearted or suggested it, so it was pushed up."""
+
+    chosen_by_busiest: bool = False
+    """Last chosen by whoever has been deciding most, so it was pushed down."""
+
     reasons: list[str] = Field(default_factory=list)
     """Short explanations of why the recipe scored the way it did."""
 
@@ -405,7 +430,7 @@ class MealPlanRotationRequest(MealieModel):
     favorite_weight: float = Field(1.0, ge=0, le=10)
     suggestion_weight: float = Field(1.5, ge=0, le=10)
     fairness_weight: float = Field(1.0, ge=0, le=10)
-    """Pushes down recipes last picked by whoever chose most recently."""
+    """Pushes up the wishes of whoever's turn it is and down what the busiest decider chose last."""
 
     limit: int = Field(5, ge=1, le=50)
 
@@ -413,7 +438,19 @@ class MealPlanRotationRequest(MealieModel):
 class MealPlanRotationSlot(MealieModel):
     date: date
     entry_type: PlanEntryType
+    decider_id: UUID4 | None = None
+    decider: str | None = None
+    """Whose turn this day is: the member with the fewest picks lately, counting the days before it."""
+
     candidates: list[MealPlanRotationCandidate] = Field(default_factory=list)
+
+
+class MealPlanRotationPick(MealieModel):
+    """One recipe from the rolling plan, put on the meal plan by hand."""
+
+    date: date
+    entry_type: PlanEntryType = PlanEntryType.dinner
+    recipe_id: UUID4
 
 
 class MealPlanRotationProposal(MealieModel):

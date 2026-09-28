@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import UUID4
 
+from mealie.lang.providers import Translator, get_locale_provider
 from mealie.repos.repository_factory import AllRepositories
 from mealie.schema.household.group_shopping_list import ShoppingListAddRecipeParamsBulk
 from mealie.schema.meal_plan.attendance import (
@@ -107,13 +108,36 @@ class MealPlanLockedError(MealPlanAttendanceError):
 
 
 class MealPlanAttendanceService:
-    def __init__(self, repos: AllRepositories) -> None:
+    def __init__(self, repos: AllRepositories, translator: Translator | None = None) -> None:
         if not repos.group_id or not repos.household_id:
             raise ValueError("MealPlanAttendanceService requires group- and household-scoped repositories")
 
         self.repos = repos
         self.group_id: UUID4 = repos.group_id
         self.household_id: UUID4 = repos.household_id
+        self._translator = translator
+
+    @cached_property
+    def translator(self) -> Translator:
+        """The request's language, or the household's saved one when there is no request (scheduler)."""
+
+        return self._translator or get_locale_provider(self.settings.locale)
+
+    def format_deadline(self, deadline: datetime) -> str:
+        """A deadline as the household reads it: in its own time zone and its own date format."""
+
+        local = deadline.astimezone(ZoneInfo(self.settings.timezone))
+        return local.strftime(self.translator.t("mealplan.attendance.datetime-format", default="%Y-%m-%d %H:%M"))
+
+    def describe_meal(self, summary: MealPlanAttendanceSummary) -> str:
+        """`Lasagne on 10/04/2026`: the recipe, or failing that the meal's title or type, and its day."""
+
+        name = summary.recipe_name or summary.title
+        if not name:
+            name = self.translator.t(f"mealplan.attendance.entry-type.{summary.entry_type.value}")
+
+        day = summary.date.strftime(self.translator.t("mealplan.attendance.date-format", default="%Y-%m-%d"))
+        return self.translator.t("mealplan.attendance.meal-on-date", meal=name, date=day)
 
     # ------------------------------------------------------------------
     # Settings
@@ -130,19 +154,52 @@ class MealPlanAttendanceService:
         defaults = MealPlanAttendanceSettingsSave(group_id=self.group_id, household_id=self.household_id)
         return self.repos.mealplan_attendance_settings.create(defaults.to_db_values())
 
-    def update_settings(self, data: MealPlanAttendanceSettingsUpdate) -> MealPlanAttendanceSettingsOut:
+    def update_settings(
+        self, data: MealPlanAttendanceSettingsUpdate, locale: str | None = None
+    ) -> MealPlanAttendanceSettingsOut:
         # Touch the property first so a household updating its settings before ever reading
         # them still has a row to update.
-        _ = self.settings
+        current = self.settings
 
         save = MealPlanAttendanceSettingsSave(
-            **data.model_dump(), group_id=self.group_id, household_id=self.household_id
+            **data.model_dump(),
+            group_id=self.group_id,
+            household_id=self.household_id,
+            locale=locale or current.locale,
+            auto_plan_last_run=current.auto_plan_last_run,
         )
+        return self._save_settings(save)
+
+    def _save_settings(self, save: MealPlanAttendanceSettingsSave) -> MealPlanAttendanceSettingsOut:
         # This repository is keyed on household_id, not on the row's own id.
         updated = self.repos.mealplan_attendance_settings.update(self.household_id, save.to_db_values())
 
         self.__dict__["settings"] = updated
         return updated
+
+    def auto_plan_window(self, now: datetime | None = None) -> tuple[date, date] | None:
+        """
+        The days the weekly automatic planning should fill right now, or None if it is not due.
+
+        It is due once on the configured weekday, counted in the household's time zone, and
+        fills the configured number of days starting the day after.
+        """
+
+        settings = self.settings
+        if not settings.auto_plan_enabled:
+            return None
+
+        local_today = (now or datetime.now(UTC)).astimezone(ZoneInfo(settings.timezone)).date()
+        if local_today.weekday() != settings.auto_plan_weekday or settings.auto_plan_last_run == local_today:
+            return None
+
+        return local_today + timedelta(days=1), local_today + timedelta(days=settings.auto_plan_days)
+
+    def mark_auto_planned(self, local_day: date) -> None:
+        save = MealPlanAttendanceSettingsSave.model_validate(
+            {**self.settings.model_dump(exclude={"id"}), "auto_plan_last_run": local_day}
+        )
+        self._save_settings(save)
 
     @property
     def _relevant_entry_types(self) -> set[PlanEntryType]:
@@ -662,16 +719,16 @@ class MealPlanAttendanceService:
         recipe_params: list[ShoppingListAddRecipeParamsBulk] = []
 
         for summary in overview.meals:
-            label = f"{summary.date} {summary.entry_type.value}"
+            meal = self.describe_meal(summary)
 
             if not summary.recipe_id:
-                skipped.append(f"{label}: no recipe attached")
+                skipped.append(self.translator.t("mealplan.attendance.skipped-no-recipe", meal=meal))
                 continue
             if request.only_locked and not summary.is_locked:
-                skipped.append(f"{label}: attendance is still open")
+                skipped.append(self.translator.t("mealplan.attendance.skipped-still-open", meal=meal))
                 continue
             if summary.servings <= 0:
-                skipped.append(f"{label}: nobody is eating along")
+                skipped.append(self.translator.t("mealplan.attendance.skipped-nobody-attending", meal=meal))
                 continue
 
             recipe_params.append(

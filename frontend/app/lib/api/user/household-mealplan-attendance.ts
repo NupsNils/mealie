@@ -15,11 +15,13 @@ import type {
   MealPlanParticipantCreate,
   MealPlanParticipantOut,
   MealPlanParticipantUpdate,
+  MealPlanRotationPick,
   MealPlanRotationProposal,
   MealPlanRotationRequest,
   MealPlanSuggestionCreate,
   MealPlanSuggestionOut,
   MealPlanSuggestionUpdate,
+  ReadPlanEntry,
 } from "~/lib/api/types/meal-plan";
 
 const prefix = "/api";
@@ -39,6 +41,8 @@ const routes = {
   suggestions: `${prefix}/households/mealplan-suggestions`,
   suggestionId: (id: string | number) => `${prefix}/households/mealplan-suggestions/${id}`,
   rotation: `${prefix}/households/mealplan-suggestions/rotation`,
+  rotationFill: `${prefix}/households/mealplan-suggestions/rotation/fill`,
+  rotationPlan: `${prefix}/households/mealplan-suggestions/rotation/plan`,
 
   mealAttendance: (mealplanId: number) => `${prefix}/households/mealplans/${mealplanId}/attendance`,
   mealAttendanceParticipant: (mealplanId: number, participantId: string) =>
@@ -82,6 +86,16 @@ export class MealPlanSuggestionsAPI extends BaseCRUDAPI<
   /** Ranked proposals for the open slots in a date range. */
   async getRotation(payload: MealPlanRotationRequest) {
     return await this.requests.post<MealPlanRotationProposal>(routes.rotation, payload);
+  }
+
+  /** Put the top candidate of every open day in the range on the meal plan. */
+  async fillRotation(payload: MealPlanRotationRequest) {
+    return await this.requests.post<ReadPlanEntry[]>(routes.rotationFill, payload);
+  }
+
+  /** Put one recipe from the rolling plan on the meal plan. */
+  async planPick(payload: MealPlanRotationPick) {
+    return await this.requests.post<ReadPlanEntry>(routes.rotationPlan, payload);
   }
 }
 

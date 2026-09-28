@@ -67,6 +67,10 @@ deadline approaches, and each meal is only reminded about once. Two event types,
 `mealplan_attendance_reminder` and `mealplan_attendance_closed`, are also published to the
 event bus, so they can be forwarded to Apprise notifiers or webhooks.
 
+The task runs without a browser to take a language from, so emails and notifications are
+written in the language the attendance settings were last saved in. After switching Mealie
+to another language, save the settings once to move the reminders over as well.
+
 Reminders need SMTP to be configured — see
 [Backend Configuration](../installation/backend-config.md).
 
@@ -77,15 +81,31 @@ scaled to the confirmations. By default only closed meals are included, since th
 of an open meal can still change. Meals without a recipe are skipped and the reason is
 reported back.
 
-## Rolling plan
+## Suggestions and the rolling plan
 
-The API also exposes recipe suggestions and a rotation endpoint that ranks candidates for
-the open slots in a date range:
+*Suggestions & Rotation* in the sidebar is where the household decides what to cook.
 
-- recipes marked as favourites by household members rank higher,
-- recipes cooked recently are held back until their cooldown has passed,
-- and recipes last chosen by whoever has been deciding most are pushed down, so the same
-  person does not end up picking every week.
+**Suggestions.** Anyone can suggest a recipe at any time, with an optional note. A suggestion
+ranks higher in the rolling plan until the recipe is planned, then it is marked as planned.
+People withdraw their own suggestions; household managers can also reject other people's.
 
-Each candidate comes back with the reasons behind its score, so the ranking can be
-explained rather than just trusted.
+**The rolling plan** ranks recipes for every open day of the week:
+
+- recipes hearted as favourites by household members rank higher, once per member,
+- a dish rests for a number of weeks after it was last cooked (6 by default) and is not
+  offered before that, counted up to the day being planned,
+- and the days take turns: each open day belongs to whoever has had the fewest picks over
+  the last eight weeks, counting meals already planned ahead. Their favourites and
+  suggestions are pushed up for that day, and dishes last chosen by whoever has been
+  deciding most are pushed down. A tie goes to whoever picked least recently.
+
+Each candidate shows why it ranks where it does. The weighting of favourites, suggestions and
+taking turns can be adjusted on the page. *Plan* puts one candidate on the meal plan;
+*Fill the week automatically* puts the top pick on every open day of the week, recorded as
+chosen by whoever's turn the day was. Days that already have a meal are never changed.
+
+**Automatic planning.** In the attendance settings the rolling plan can fill the empty days
+once a week on its own: on the chosen planning day it fills the configured number of days
+that follow, for every meal type that takes part in attendance. Pick the planning day and the
+number of days so the plan is ready before the answers are due. This runs in the same hourly
+task as the reminders, so the module has to be switched on.

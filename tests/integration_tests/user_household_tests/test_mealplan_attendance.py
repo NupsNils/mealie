@@ -136,6 +136,25 @@ class MealPlanAttendanceSettingsTests:
 
         assert response.status_code == 422
 
+    def test_the_ui_language_is_remembered_for_the_scheduler(
+        self, api_client: TestClient, unique_user_fn_scoped: TestUser
+    ):
+        def save(language: str | None) -> dict:
+            headers = {**unique_user_fn_scoped.token}
+            if language:
+                headers["Accept-Language"] = language
+            response = api_client.put(
+                api_routes.households_mealplan_attendance_settings, json={"enabled": True}, headers=headers
+            )
+            assert response.status_code == 200
+            return response.json()
+
+        assert save("de-DE")["locale"] == "de-DE"
+        # A request without a known language keeps the one already stored.
+        assert save(None)["locale"] == "de-DE"
+        assert save("xx-XX")["locale"] == "de-DE"
+        assert save("en-US")["locale"] == "en-US"
+
 
 class MealPlanParticipantTests:
     def test_sync_creates_one_participant_per_household_member(
@@ -506,3 +525,34 @@ class MealPlanAttendanceShoppingListTests:
         assert response.status_code == 200
         assert response.json()["added"] == []
         assert "no recipe attached" in response.json()["skipped"][0]
+
+    def test_skip_reasons_follow_the_request_language(self, api_client: TestClient, unique_user_fn_scoped: TestUser):
+        enable_attendance(api_client, unique_user_fn_scoped)
+        sync_participants(api_client, unique_user_fn_scoped)
+
+        shopping_list = unique_user_fn_scoped.repos.group_shopping_lists.create(
+            ShoppingListSave(
+                name=random_string(10),
+                group_id=unique_user_fn_scoped.group_id,
+                user_id=unique_user_fn_scoped.user_id,
+            )
+        )
+
+        meal_date = today() + timedelta(days=2)
+        create_dinner(unique_user_fn_scoped, meal_date)
+
+        response = api_client.post(
+            api_routes.households_mealplan_attendance_shopping_list,
+            json={
+                "shoppingListId": str(shopping_list.id),
+                "startDate": meal_date.isoformat(),
+                "endDate": meal_date.isoformat(),
+                "onlyLocked": False,
+            },
+            headers={**unique_user_fn_scoped.token, "Accept-Language": "de-DE"},
+        )
+
+        assert response.status_code == 200
+        reason = response.json()["skipped"][0]
+        assert reason.endswith(": kein Rezept hinterlegt")
+        assert f" am {meal_date.strftime('%d.%m.%Y')}" in reason

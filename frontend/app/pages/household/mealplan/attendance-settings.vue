@@ -146,6 +146,58 @@
         </v-card-text>
       </v-card>
 
+      <v-card variant="outlined" class="mt-4" style="border-color: lightgray;">
+        <v-card-title class="text-subtitle-1">
+          {{ $t("meal-plan.rotation.auto-plan") }}
+        </v-card-title>
+        <v-divider class="mx-2" />
+        <v-card-text>
+          <v-checkbox
+            v-model="form.autoPlanEnabled"
+            hide-details
+            :label="$t('meal-plan.rotation.auto-plan-enabled')"
+            :hint="$t('meal-plan.rotation.auto-plan-enabled-hint')"
+            persistent-hint
+          />
+          <v-select
+            v-model="form.autoPlanWeekday"
+            class="mt-6"
+            :items="weekdayOptions"
+            item-title="text"
+            item-value="value"
+            variant="outlined"
+            density="compact"
+            :disabled="!form.autoPlanEnabled"
+            :label="$t('meal-plan.rotation.auto-plan-weekday')"
+          />
+          <v-number-input
+            v-model="form.autoPlanDays"
+            class="mt-2"
+            :min="1"
+            :max="60"
+            control-variant="stacked"
+            variant="outlined"
+            density="compact"
+            :disabled="!form.autoPlanEnabled"
+            :label="$t('meal-plan.rotation.auto-plan-days')"
+            :hint="$t('meal-plan.rotation.auto-plan-days-hint')"
+            persistent-hint
+          />
+          <v-number-input
+            v-model="form.rotationCooldownWeeks"
+            class="mt-6"
+            :min="0"
+            :max="52"
+            control-variant="stacked"
+            variant="outlined"
+            density="compact"
+            :label="$t('meal-plan.rotation.cooldown-weeks')"
+            :hint="$t('meal-plan.rotation.cooldown-weeks-hint')"
+            persistent-hint
+          />
+        </v-card-text>
+      </v-card>
+
       <div class="d-flex pa-2">
         <BaseButton type="submit" edit class="ml-auto" :loading="loading">
           {{ $t("general.update") }}

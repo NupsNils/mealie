@@ -2,6 +2,7 @@ from datetime import UTC, date, datetime, time
 
 import pytest
 
+from mealie.lang.providers import get_locale_provider
 from mealie.schema.meal_plan.attendance import DeadlineMode, MealPlanAttendanceSettingsUpdate
 from mealie.schema.meal_plan.new_meal import PlanEntryType
 from mealie.services.household_services.mealplan_attendance import (
@@ -88,3 +89,34 @@ class ScaleFactorTests:
     @pytest.mark.parametrize(("servings", "recipe_servings"), [(0, 4), (7, 0), (0, 0)])
     def test_falls_back_to_one_when_there_is_nothing_to_scale(self, servings: float, recipe_servings: float):
         assert compute_scale_factor(servings, recipe_servings) == 1.0
+
+
+class SchedulerMessageTests:
+    """The scheduler's notifications pick a plural form, so `count` must be applied before the meal."""
+
+    @pytest.mark.parametrize(
+        ("count", "expected"),
+        [
+            (1, "Für Lasagne am 04.10.2026 fehlt noch 1 Antwort"),
+            (3, "Für Lasagne am 04.10.2026 fehlen noch 3 Antworten"),
+        ],
+    )
+    def test_reminder_notification_in_german(self, count: int, expected: str):
+        t = get_locale_provider("de-DE").t
+        meal = t("mealplan.attendance.meal-on-date", meal="Lasagne", date="04.10.2026")
+
+        assert t("mealplan.attendance.reminder-notification", count=count, meal=meal) == expected
+
+    def test_closed_notification_in_english(self):
+        t = get_locale_provider("en-US").t
+
+        message = t("mealplan.attendance.closed-notification", count=7, meal="Lasagne on 10/04/2026")
+
+        assert message == "Attendance for Lasagne on 10/04/2026 closed with 7 confirmations"
+
+    def test_german_reminder_email_body(self):
+        body = get_locale_provider("de-DE").t(
+            "emails.mealplan-attendance.reminder_body", meal="Lasagne am 04.10.2026", deadline="02.10.2026, 20:00 Uhr"
+        )
+
+        assert body == "Isst du mit? Lasagne am 04.10.2026. Bitte antworte bis 02.10.2026, 20:00 Uhr."

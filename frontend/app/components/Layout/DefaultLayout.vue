@@ -249,6 +249,12 @@ const topLinks = computed<SideBarLink[]>(() => [
     restricted: true,
   },
   {
+    icon: $globals.icons.autoFix,
+    title: i18n.t("meal-plan.rotation.title"),
+    to: "/household/mealplan/rotation",
+    restricted: true,
+  },
+  {
     icon: $globals.icons.formatListCheck,
     title: i18n.t("shopping-list.shopping-lists"),
     to: "/shopping-lists",

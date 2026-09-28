@@ -103,8 +103,14 @@ export interface MealPlanAttendanceSettingsOut {
   reminderEnabled?: boolean;
   reminderHoursBefore?: number;
   entryTypes?: PlanEntryType2[];
+  autoPlanEnabled?: boolean;
+  autoPlanWeekday?: number;
+  autoPlanDays?: number;
+  rotationCooldownWeeks?: number;
   groupId: string;
   householdId: string;
+  locale?: string | null;
+  autoPlanLastRun?: string | null;
   id: string;
 }
 export interface MealPlanParticipantOut {
@@ -172,8 +178,14 @@ export interface MealPlanAttendanceSettingsSave {
   reminderEnabled?: boolean;
   reminderHoursBefore?: number;
   entryTypes?: PlanEntryType2[];
+  autoPlanEnabled?: boolean;
+  autoPlanWeekday?: number;
+  autoPlanDays?: number;
+  rotationCooldownWeeks?: number;
   groupId: string;
   householdId: string;
+  locale?: string | null;
+  autoPlanLastRun?: string | null;
 }
 export interface MealPlanAttendanceSettingsUpdate {
   enabled?: boolean;
@@ -186,6 +198,10 @@ export interface MealPlanAttendanceSettingsUpdate {
   reminderEnabled?: boolean;
   reminderHoursBefore?: number;
   entryTypes?: PlanEntryType2[];
+  autoPlanEnabled?: boolean;
+  autoPlanWeekday?: number;
+  autoPlanDays?: number;
+  rotationCooldownWeeks?: number;
 }
 export interface MealPlanAttendanceShoppingListEntry {
   mealplanId: number;
@@ -270,9 +286,12 @@ export interface MealPlanRotationCandidate {
   lastPlannedOn?: string | null;
   daysSinceLast?: number | null;
   favoriteCount?: number;
+  favoritedBy?: string[];
   isSuggested?: boolean;
   suggestedBy?: string[];
   lastChosenBy?: string | null;
+  wishOfDecider?: boolean;
+  chosenByBusiest?: boolean;
   reasons?: string[];
 }
 export interface RecipeSummary {
@@ -324,6 +343,11 @@ export interface RecipeTool {
   recipeCount?: number;
   householdsWithTool?: string[];
 }
+export interface MealPlanRotationPick {
+  date: string;
+  entryType?: PlanEntryType;
+  recipeId: string;
+}
 export interface MealPlanRotationProposal {
   cooldownWeeks: number;
   slots?: MealPlanRotationSlot[];
@@ -331,6 +355,8 @@ export interface MealPlanRotationProposal {
 export interface MealPlanRotationSlot {
   date: string;
   entryType: PlanEntryType;
+  deciderId?: string | null;
+  decider?: string | null;
   candidates?: MealPlanRotationCandidate[];
 }
 export interface MealPlanRotationRequest {

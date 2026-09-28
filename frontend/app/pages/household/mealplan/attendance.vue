@@ -76,6 +76,11 @@
             disabled: !hasMeals,
           },
           {
+            icon: $globals.icons.autoFix,
+            text: $t('meal-plan.rotation.title'),
+            event: 'rotation',
+          },
+          {
             icon: $globals.icons.user,
             text: $t('meal-plan.attendance.participants'),
             event: 'participants',
@@ -87,6 +92,7 @@
           },
         ]"
         @shopping-list="openShoppingListDialog"
+        @rotation="router.push('/household/mealplan/rotation')"
         @participants="router.push('/household/mealplan/participants')"
         @settings="router.push('/household/mealplan/attendance-settings')"
       />

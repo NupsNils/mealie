@@ -203,6 +203,22 @@ class MealPlanAttendanceSettings(SqlAlchemyBase, BaseMixins):
     entry_types: Mapped[str] = mapped_column(sa.String, nullable=False, default="dinner")
     """Comma separated mealplan entry types that require attendance, e.g. `lunch,dinner`."""
 
+    locale: Mapped[str | None] = mapped_column(sa.String, nullable=True)
+    """UI language the settings were last saved in, e.g. `de-DE`. The scheduler has no request
+    to read a language from, so reminders and notifications are written in this one."""
+
+    auto_plan_enabled: FilterableColumn[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
+    auto_plan_weekday: FilterableColumn[int] = mapped_column(sa.Integer, nullable=False, default=4)
+    """Weekday the automatic planning runs on, Monday is 0."""
+
+    auto_plan_days: FilterableColumn[int] = mapped_column(sa.Integer, nullable=False, default=14)
+    """How many days the automatic planning fills, starting the day after it runs."""
+
+    auto_plan_last_run: Mapped[datetime.date | None] = mapped_column(sa.Date, nullable=True)
+    """Household-local day the automatic planning last ran, so it runs once per week."""
+
+    rotation_cooldown_weeks: FilterableColumn[int] = mapped_column(sa.Integer, nullable=False, default=6)
+
     @auto_init()
     def __init__(self, **_) -> None:
         pass

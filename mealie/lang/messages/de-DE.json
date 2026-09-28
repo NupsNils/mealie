@@ -46,7 +46,26 @@
         }
     },
     "mealplan": {
-        "no-recipes-match-your-rules": "Keine Rezepte entsprechen deinen Regeln"
+        "no-recipes-match-your-rules": "Keine Rezepte entsprechen deinen Regeln",
+        "attendance": {
+            "meal-on-date": "{meal} am {date}",
+            "date-format": "%d.%m.%Y",
+            "datetime-format": "%d.%m.%Y, %H:%M Uhr",
+            "entry-type": {
+                "breakfast": "Frühstück",
+                "lunch": "Mittagessen",
+                "dinner": "Abendessen",
+                "side": "Beilage",
+                "snack": "Zwischenmahlzeit",
+                "drink": "Getränk",
+                "dessert": "Nachspeise"
+            },
+            "reminder-notification": "Für {meal} fehlt noch {count} Antwort|Für {meal} fehlen noch {count} Antworten",
+            "closed-notification": "Teilnahme für {meal} gesperrt mit {count} Zusage|Teilnahme für {meal} gesperrt mit {count} Zusagen",
+            "skipped-no-recipe": "{meal}: kein Rezept hinterlegt",
+            "skipped-still-open": "{meal}: Teilnahme ist noch offen",
+            "skipped-nobody-attending": "{meal}: niemand isst mit"
+        }
     },
     "user": {
         "user-updated": "Benutzer aktualisiert",
@@ -105,6 +124,14 @@
             "message_top": "Das ist eine Test E-Mail.",
             "message_bottom": "Bitte klicke auf den Button oben, um die E-Mail zu testen.",
             "button_text": "Mealie öffnen"
+        },
+        "mealplan-attendance": {
+            "subject": "Isst du mit?",
+            "header_text": "Essensteilnahme",
+            "message_top": "Für kommende Mahlzeiten fehlt noch deine Antwort.",
+            "message_bottom": "Bitte gib dem Haushalt Bescheid, bevor die Frist abläuft.",
+            "button_text": "Essensplan öffnen",
+            "reminder_body": "Isst du mit? {meal}. Bitte antworte bis {deadline}."
         }
     }
 }

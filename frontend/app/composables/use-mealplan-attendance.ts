@@ -1,3 +1,4 @@
+import { watchDebounced } from "@vueuse/core";
 import { format } from "date-fns";
 import { useUserApi } from "~/composables/api";
 import { alert } from "~/composables/use-toast";
@@ -13,6 +14,12 @@ import type {
   MealPlanEntryDetailsUpdate,
   MealPlanParticipantCreate,
   MealPlanParticipantOut,
+  MealPlanRotationCandidate,
+  MealPlanRotationProposal,
+  MealPlanRotationRequest,
+  MealPlanRotationSlot,
+  MealPlanSuggestionCreate,
+  MealPlanSuggestionOut,
 } from "~/lib/api/types/meal-plan";
 
 export interface AttendanceDateRange {
@@ -251,4 +258,117 @@ export const useMealplanAttendanceSettings = function () {
   }
 
   return { settings, loading, refresh, save };
+};
+
+export const useMealplanSuggestions = function () {
+  const api = useUserApi();
+  const i18n = useI18n();
+
+  const suggestions = ref<MealPlanSuggestionOut[]>([]);
+  const loading = ref(false);
+
+  /** Planned and rejected suggestions have done their job, so only the open ones are shown. */
+  const openSuggestions = computed(() => suggestions.value.filter(suggestion => suggestion.status === "open"));
+
+  async function refresh() {
+    loading.value = true;
+    const { data } = await api.mealplanAttendance.suggestions.getAll();
+    if (data) {
+      suggestions.value = data.items ?? [];
+    }
+    loading.value = false;
+  }
+
+  async function suggest(payload: MealPlanSuggestionCreate) {
+    const { data, error } = await api.mealplanAttendance.suggestions.createOne(payload);
+    if (data) {
+      alert.success(i18n.t("meal-plan.rotation.suggestion-added"));
+      await refresh();
+      return true;
+    }
+
+    // Suggesting the same recipe twice comes back as a conflict.
+    alert.error(
+      error?.response?.status === 409
+        ? i18n.t("meal-plan.rotation.suggestion-exists")
+        : i18n.t("meal-plan.rotation.suggestion-failed"),
+    );
+    return false;
+  }
+
+  async function withdraw(id: string) {
+    await api.mealplanAttendance.suggestions.deleteOne(id);
+    await refresh();
+  }
+
+  async function reject(suggestion: MealPlanSuggestionOut) {
+    await api.mealplanAttendance.suggestions.updateOne(suggestion.id, {
+      id: suggestion.id,
+      status: "rejected",
+      note: suggestion.note,
+    });
+    await refresh();
+  }
+
+  return { suggestions, openSuggestions, loading, refresh, suggest, withdraw, reject };
+};
+
+export const useMealplanRotation = function (request: Ref<MealPlanRotationRequest>) {
+  const api = useUserApi();
+  const i18n = useI18n();
+
+  const proposal = ref<MealPlanRotationProposal | null>(null);
+  const loading = ref(false);
+
+  async function refresh() {
+    loading.value = true;
+    const { data } = await api.mealplanAttendance.suggestions.getRotation(request.value);
+    proposal.value = data ?? null;
+    loading.value = false;
+  }
+
+  async function plan(slot: MealPlanRotationSlot, candidate: MealPlanRotationCandidate) {
+    if (!candidate.recipe.id) {
+      return false;
+    }
+
+    const { data } = await api.mealplanAttendance.suggestions.planPick({
+      date: slot.date,
+      entryType: slot.entryType,
+      recipeId: candidate.recipe.id,
+    });
+    if (!data) {
+      alert.error(i18n.t("meal-plan.rotation.plan-failed"));
+      return false;
+    }
+
+    alert.success(i18n.t("meal-plan.rotation.planned"));
+    await refresh();
+    return true;
+  }
+
+  async function fill() {
+    loading.value = true;
+    const { data } = await api.mealplanAttendance.suggestions.fillRotation(request.value);
+    loading.value = false;
+
+    if (!data) {
+      alert.error(i18n.t("meal-plan.rotation.plan-failed"));
+      return 0;
+    }
+
+    if (data.length) {
+      alert.success(i18n.t("meal-plan.rotation.meals-planned", data.length));
+    }
+    else {
+      alert.warning(i18n.t("meal-plan.rotation.nothing-planned"));
+    }
+    await refresh();
+    return data.length;
+  }
+
+  // Debounced because the weighting sliders fire on every step while they are dragged.
+  watchDebounced(request, refresh, { debounce: 300, deep: true });
+
+  return { proposal, loading, refresh, plan, fill };
 };
